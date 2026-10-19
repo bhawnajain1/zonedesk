@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZoneDesk – F&amp;O order-block &amp; liquidity terminal</title>
+<style>
+  :root{--bg:#0b0f14;--panel:#121923;--line:#1f2a38;--text:#e6edf5;--mute:#8a99ab;--bull:#22c55e;--bear:#ef4444;--accent:#f5b83d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+  header{position:sticky;top:0;z-index:10;background:#0b0f14ee;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  header .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .logo{font-weight:800;letter-spacing:.5px}.logo i{color:var(--accent)}
+  nav a{margin-left:20px;color:var(--mute);font-size:14px}nav a:hover{color:var(--text)}
+  .btn{display:inline-block;padding:11px 20px;border-radius:10px;font-weight:600;border:1px solid var(--line);background:var(--panel)}
+  .btn.primary{background:var(--accent);color:#111;border-color:var(--accent)}
+  h1{font-size:clamp(32px,6vw,56px);line-height:1.08;margin:0 0 16px}h1 em,h2 em{color:var(--accent)}
+  h2{font-size:clamp(24px,4vw,36px);margin:0 0 12px}
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  .hero{padding:72px 0 56px;border:0}
+  .mute{color:var(--mute)}
+  .grid{display:grid;gap:16px}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .num{color:var(--accent);font-weight:800}
+  .tabs button{background:none;border:1px solid var(--line);color:var(--mute);padding:7px 14px;border-radius:99px;cursor:pointer;margin-right:6px}
+  .tabs button.on{color:#111;background:var(--accent);border-color:var(--accent)}
+  table{width:100%;border-collapse:collapse}
+  td,th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+  tr.row{cursor:pointer}tr.row:hover{background:#17212d}
+  .bull{color:var(--bull)}.bear{color:var(--bear)}
+  .bar{height:10px;border-radius:5px;background:var(--bear);overflow:hidden}.bar>div{height:100%;background:var(--bull)}
+  .sector{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid var(--line)}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:16px;width:min(680px,94vw);padding:20px}
+  dialog::backdrop{background:#000a}
+  canvas{width:100%;height:300px;background:#0d131b;border-radius:10px}
+  .legend span{margin-right:14px;font-size:13px}
+  .price{font-size:44px;font-weight:800}.price s{font-size:20px;color:var(--mute);font-weight:400}
+  details{border-bottom:1px solid var(--line);padding:12px 0}summary{cursor:pointer;font-weight:600}
+  .marquee{overflow:hidden;white-space:nowrap}.marquee div{display:inline-block;animation:m 40s linear infinite}
+  .marquee .card{display:inline-block;width:300px;margin-right:14px;white-space:normal;vertical-align:top}
+  @keyframes m{to{transform:translateX(-50%)}}
+  .tag{font-size:12px;border:1px solid var(--line);border-radius:99px;padding:2px 10px;color:var(--mute);margin-right:6px}
+  footer{border-top:1px solid var(--line);padding:32px 0;color:var(--mute);font-size:13px}
+  .page{display:none}.page.on{display:block}
+  .note{font-size:12px;color:var(--accent)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="logo" href="#/">ZONE<i>DESK</i></a>
+  <nav>
+    <a href="#/features">Features</a><a href="#/pricing">Pricing</a><a href="#/blog">Blog</a>
+    <a href="#/updates">Updates</a><a href="#/testimonials">Testimonials</a><a href="#/about">About</a>
+  </nav>
+  <a class="btn primary" href="#/terminal">Open terminal</a>
+</div></header>
+
+<!-- HOME -->
+<main class="page on" id="p-home">
+<div class="wrap">
+  <div class="hero">
+    <h1>See where the <em>big orders</em> sit — before the move.</h1>
+    <p class="mute" style="max-width:620px">Every F&amp;O stock ranked by one number: how far it has travelled from today's open, relative to its normal daily range. Choppy names score zero. Order-block zones and liquidity levels are drawn for you.</p>
+    <p><a class="btn primary" href="#/terminal">Open live board</a> <a class="btn" href="#how" onclick="document.getElementById('how').scrollIntoView();return false">How it works</a></p>
+  </div>
+</div>
+
+<section id="features"><div class="wrap">
+  <h2>Three tools, <em>one screen</em></h2>
+  <div class="grid g3">
+    <div class="card"><span class="num">01</span><h3>Order-block charts</h3><p class="mute">Bullish and bearish zones, marked where they formed, dropped when price closes through them.</p></div>
+    <div class="card"><span class="num">02</span><h3>Liquidity board</h3><p class="mute">Equal highs and equal lows — where stops cluster — shown as levels on every chart.</p></div>
+    <div class="card"><span class="num">03</span><h3>Market X-ray</h3><p class="mute">Breadth, sector flow and every stock plotted by move, so you read the market before the stock.</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Without vs <em>with</em></h2>
+  <div class="grid g2">
+    <div class="card"><h3 class="bear">Without</h3><p class="mute">Scrolling 200 charts at 9:20. Chasing the candle that already ran. Stops placed exactly where everyone else put theirs.</p></div>
+    <div class="card"><h3 class="bull">With</h3><p class="mute">A top-20 list per side, one zone per stock, a stop beyond the liquidity level, and a risk:reward number before you click.</p></div>
+  </div>
+</div></section>
+
+<section id="how"><div class="wrap">
+  <h2>How it <em>works</em></h2>
+  <div class="grid g3">
+    <div class="card"><span class="num">1</span><h3>Scan</h3><p class="mute">Every F&amp;O stock is scored from price action each minute.</p></div>
+    <div class="card"><span class="num">2</span><h3>Rank</h3><p class="mute">Top 20 bullish and top 20 bearish. Choppy stocks are filtered out.</p></div>
+    <div class="card"><span class="num">3</span><h3>Zone</h3><p class="mute">Open a stock to see one clear order block, the liquidity level, and R:R.</p></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <b>Published formula</b>
+    <p class="mute" style="margin:6px 0 0">strength = (last − today's open) ÷ (average daily range of the last 14 sessions). Same formula for every stock. Stocks that crossed their open too many times score 0.</p>
+  </div>
+</div></section>
+
+<section id="pricing"><div class="wrap">
+  <h2>One <em>plan</em></h2>
+  <div class="card" style="max-width:420px">
+    <div class="price">₹7,999 <s>₹28,999</s></div>
+    <p class="mute">12 months · about ₹22 a day · board, liquidity, journal, videos, community.</p>
+    <a class="btn primary" href="#/terminal">Start (demo)</a>
+    <p class="note">Demo site — no payments are taken.</p>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>What traders <em>say</em></h2>
+  <p class="note">Placeholder quotes for layout only.</p>
+  <div class="marquee"><div id="marq"></div></div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>FAQ</h2>
+  <details><summary>Is this investment advice?</summary><p class="mute">No. It's analytics. Rankings describe what has already moved.</p></details>
+  <details><summary>How often does it refresh?</summary><p class="mute">Every minute during market hours (09:15–15:30 IST); last close otherwise.</p></details>
+  <details><summary>Why is a stock missing?</summary><p class="mute">Choppy stocks score zero and are hidden from the boards.</p></details>
+  <details><summary>Which data does it use?</summary><p class="mute">Yahoo Finance via yfinance, delayed about 15 minutes. Falls back to simulated prices if the feed is down.</p></details>
+</div></section>
+</main>
+
+<!-- TERMINAL -->
+<main class="page" id="p-terminal">
+<div class="wrap" style="padding-top:28px;padding-bottom:40px">
+  <h2>Terminal <span class="note" id="feed-note">loading…</span></h2>
+  <div class="grid g2" style="margin-bottom:16px">
+    <div class="card"><b>Market breadth</b><div id="breadth-txt" class="mute"></div><div class="bar" style="margin-top:8px"><div id="breadth-bar"></div></div></div>
+    <div class="card"><b>Sector flow</b><div id="sectors"></div></div>
+  </div>
+  <div class="tabs" style="margin-bottom:10px"><button id="t-bull" class="on">Bullish</button><button id="t-bear">Bearish</button></div>
+  <div class="card"><table><thead><tr><th>#</th><th>Stock</th><th>Sector</th><th>Last</th><th>Change</th><th>Strength</th></tr></thead><tbody id="board"></tbody></table></div>
+</div>
+</main>
+
+<!-- BLOG -->
+<main class="page" id="p-blog"><div class="wrap" style="padding:40px 20px">
+  <h2>Blog</h2>
+  <div class="grid">
+    <a class="card" href="#/blog"><span class="tag">Order blocks</span><h3>What is an order block?</h3><p class="mute">The last opposing candle before a strong move, and why price often returns to it.</p></a>
+    <a class="card" href="#/blog"><span class="tag">Playbook</span><h3>A five-step morning routine</h3><p class="mute">Breadth, sector, board, zone, risk — in that order.</p></a>
+    <a class="card" href="#/blog"><span class="tag">Liquidity</span><h3>Where stops hide</h3><p class="mute">Equal highs and lows attract sweeps. How to place your stop beyond them.</p></a>
+    <a class="card" href="#/blog"><span class="tag">Risk</span><h3>Consistency is a number</h3><p class="mute">Size by risk, journal weekly.</p></a>
+  </div>
+</div></main>
+
+<!-- UPDATES -->
+<main class="page" id="p-updates"><div class="wrap" style="padding:40px 20px">
+  <h2>What's new</h2>
+  <div class="tabs" id="upd-tabs" style="margin-bottom:12px"></div>
+  <div id="upd-list" class="grid"></div>
+</div></main>
+
+<!-- TESTIMONIALS -->
+<main class="page" id="p-testimonials"><div class="wrap" style="padding:40px 20px">
+  <h2>Testimonials</h2><p class="note">Placeholder quotes for layout only.</p>
+  <div class="grid g3" id="tlist"></div>
+</div></main>
+
+<!-- ABOUT -->
+<main class="page" id="p-about"><div class="wrap" style="padding:40px 20px;max-width:760px">
+  <h2>About</h2>
+  <p class="mute">ZoneDesk is a demo terminal for intraday F&amp;O traders. It shows which stocks are moving, in which direction, and where the nearest order block and liquidity sit.</p>
+  <p class="mute">It is analytics software. It gives no tips, manages no money and places no trades.</p>
+</div></main>
+
+<!-- DISCLAIMER -->
+<main class="page" id="p-disclaimer"><div class="wrap" style="padding:40px 20px;max-width:760px">
+  <h2>Disclaimer</h2>
+  <ul class="mute">
+    <li>Not investment advice. Rankings are descriptive, not predictive.</li>
+    <li>This demo uses simulated prices and must not be used to trade.</li>
+    <li>Derivatives trading carries a high risk of loss.</li>
+  </ul>
+</div></main>
+
+<footer><div class="wrap">
+  <b class="logo">ZONE<i>DESK</i></b> · <a href="#/about">About</a> · <a href="#/blog">Blog</a> · <a href="#/disclaimer">Disclaimer</a>
+  <p>Analytics tool, not investment advice. Equity derivatives carry a high risk of loss.</p>
+</div></footer>
+
+<dialog id="dlg">
+  <div style="display:flex;justify-content:space-between"><b id="d-title"></b><button onclick="dlg.close()" class="btn">Close</button></div>
+  <canvas id="cv" width="640" height="300"></canvas>
+  <div class="legend" id="d-legend"></div>
+  <table id="d-rows"></table>
+</dialog>
+
+<script>
+/* ============ ANALYSIS (pure functions, no DOM) ============ */
+
+// Strength = (last - open) / avgDailyRange. Zero if the stock whipsawed across its open.
+function strengthScore(candles, avgDailyRange) {
+  const open = candles[0].o, last = candles[candles.length - 1].c;
+  let crosses = 0;
+  for (let i = 1; i < candles.length; i++) {
+    if ((candles[i - 1].c - open) * (candles[i].c - open) < 0) crosses++;
+  }
+  if (crosses > 4) return 0;                       // choppy
+  return (last - open) / avgDailyRange;
+}
+
+// Order block: last opposite-colour candle before an impulse candle that breaks the prior swing.
+// Impulse = body > 1.5x average body. A block is dropped once a later candle closes through it.
+function findOrderBlocks(candles) {
+  const avgBody = candles.reduce((s, c) => s + Math.abs(c.c - c.o), 0) / candles.length;
+  const blocks = [];
+  for (let i = 2; i < candles.length; i++) {
+    const imp = candles[i], body = imp.c - imp.o;
+    if (Math.abs(body) < 1.5 * avgBody) continue;
+    const prior = candles.slice(Math.max(0, i - 10), i);
+    const up = body > 0;
+    const breaks = up ? imp.c > Math.max(...prior.map(c => c.h)) : imp.c < Math.min(...prior.map(c => c.l));
+    if (!breaks) continue;
+    for (let j = i - 1; j >= Math.max(0, i - 5); j--) {       // walk back to opposite candle
+      const c = candles[j];
+      if (up ? c.c < c.o : c.c > c.o) {
+        blocks.push({ type: up ? 'bull' : 'bear', lo: c.l, hi: c.h, idx: j });
+        break;
+      }
+    }
+  }
+  return blocks.filter(b => {                                 // mitigation filter
+    for (let k = b.idx + 2; k < candles.length; k++) {
+      if (b.type === 'bull' && candles[k].c < b.lo) return false;
+      if (b.type === 'bear' && candles[k].c > b.hi) return false;
+    }
+    return true;
+  });
+}
+
+// Liquidity: swing highs/lows that repeat within tol (equal highs / equal lows) = resting stops.
+function findLiquidity(candles, tol = 0.002) {
+  const hi = [], lo = [];
+  for (let i = 1; i < candles.length - 1; i++) {
+    if (candles[i].h > candles[i-1].h && candles[i].h > candles[i+1].h) hi.push(candles[i].h);
+    if (candles[i].l < candles[i-1].l && candles[i].l < candles[i+1].l) lo.push(candles[i].l);
+  }
+  const cluster = (arr) => {
+    const out = [];
+    arr.forEach((p, i) => {
+      const mates = arr.filter((q, j) => j !== i && Math.abs(q - p) / p < tol);
+      if (mates.length) out.push(Math.max(...[p, ...mates]) === p ? p : null);
+    });
+    return [...new Set(out.filter(Boolean))];
+  };
+  return { above: cluster(hi), below: cluster(lo) };
+}
+
+// Pick the one zone that matters: the nearest unmitigated block on the trend side.
+function analyse(candles, avgDailyRange) {
+  const last = candles[candles.length - 1].c;
+  const strength = strengthScore(candles, avgDailyRange);
+  const dir = strength > 0 ? 'bull' : strength < 0 ? 'bear' : null;
+  const blocks = findOrderBlocks(candles);
+  const liq = findLiquidity(candles);
+  let zone = null;
+  if (dir) {
+    const pool = blocks.filter(b => b.type === dir)
+      .sort((a, b) => Math.abs((a.lo + a.hi) / 2 - last) - Math.abs((b.lo + b.hi) / 2 - last));
+    zone = pool[0] || null;
+  }
+  let rr = null, stop = null, target = null;
+  if (zone) {
+    if (dir === 'bull') {
+      stop = Math.min(zone.lo, ...liq.below.filter(p => p <= zone.lo)); target = liq.above.filter(p => p > last).sort((a, b) => a - b)[0];
+      if (target) rr = (target - last) / Math.max(last - stop, 1e-9);
+    } else {
+      stop = Math.max(zone.hi, ...liq.above.filter(p => p >= zone.hi)); target = liq.below.filter(p => p < last).sort((a, b) => b - a)[0];
+      if (target) rr = (last - target) / Math.max(stop - last, 1e-9);
+    }
+  }
+  return { strength, dir, blocks, liq, zone, stop, target, rr, last };
+}
+
+/* ============ DATA FEED: live from /api/candles (app.py), simulated if that fails ============ */
+const STOCKS = [
+  ['SBIN','Banks',840],['HDFCBANK','Banks',1650],['ICICIBANK','Banks',1180],['AXISBANK','Banks',1110],
+  ['TCS','IT',3900],['INFY','IT',1520],['WIPRO','IT',470],['HCLTECH','IT',1480],
+  ['TATAMOTORS','Auto',950],['MARUTI','Auto',12400],['M&M','Auto',2850],['BAJAJ-AUTO','Auto',9100],
+  ['SUNPHARMA','Pharma',1750],['CIPLA','Pharma',1480],['DRREDDY','Pharma',6200],['LUPIN','Pharma',2050],
+  ['RELIANCE','Energy',2950],['ONGC','Energy',265],['NTPC','Energy',360],['POWERGRID','Energy',310],
+  ['TATASTEEL','Metals',150],['HINDALCO','Metals',650],['JSWSTEEL','Metals',930],['VEDL','Metals',440],
+  ['ITC','FMCG',430],['HINDUNILVR','FMCG',2450],['NESTLEIND','FMCG',2500],['BRITANNIA','FMCG',5200],
+  ['LT','Infra',3600],['ADANIPORTS','Infra',1350],['ULTRACEMCO','Infra',11200],['GRASIM','Infra',2600],
+];
+
+function rng(seed) { return () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296; }
+function hash(s) { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+
+async function fetchLive() {
+  const res = await fetch('/api/candles?syms=' + encodeURIComponent(STOCKS.map(s => s[0]).join(',')));
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// Returns {candles (5-min, today), avgDailyRange}. Simulated: seeded trend + noise, with the day seed.
+function simulateCandles(sym, price) {
+  const day = new Date().toISOString().slice(0, 10);
+  const r = rng(hash(sym + day));
+  const drift = (r() - 0.5) * 0.0016, vol = price * 0.0012;
+  const out = []; let p = price;
+  for (let i = 0; i < 75; i++) {                         // 09:15 -> 15:30
+    const o = p;
+    const kick = r() < 0.08 ? (r() - 0.4) * vol * 6 * Math.sign(drift || 1) : 0;   // occasional impulse
+    const c = o + o * drift + (r() - 0.5) * vol * 2 + kick;
+    out.push({ o, c, h: Math.max(o, c) + r() * vol, l: Math.min(o, c) - r() * vol });
+    p = c;
+  }
+  return { candles: out, avgDailyRange: price * 0.018 };
+}
+
+/* ============ UI ============ */
+const $ = (id) => document.getElementById(id);
+const dlg = $('dlg');
+let results = [], side = 'bull';
+
+async function loadAll() {
+  let live = null;
+  try {
+    live = await fetchLive();
+    console.info('live feed ok:', Object.keys(live.data).length, 'symbols, missing', live.missing);
+  } catch (e) {
+    console.warn('live feed failed, using simulation:', e);
+  }
+  $('feed-note').textContent = live ? live.source : 'simulated data';
+  results = STOCKS.flatMap(([sym, sector, price]) => {
+    const d = live ? live.data[sym] : simulateCandles(sym, price);
+    if (!d) return [];                                   // live feed had no data for this symbol
+    const a = analyse(d.candles, d.avgDailyRange);
+    return [{ sym, sector, candles: d.candles, ...a, chg: (a.last / d.candles[0].o - 1) * 100 }];
+  });
+  renderTerminal();
+}
+
+function renderTerminal() {
+  const bulls = results.filter(r => r.dir === 'bull').sort((a, b) => b.strength - a.strength);
+  const bears = results.filter(r => r.dir === 'bear').sort((a, b) => a.strength - b.strength);
+  $('breadth-txt').textContent = `${bulls.length} bullish · ${bears.length} bearish · ${results.length - bulls.length - bears.length} choppy`;
+  $('breadth-bar').style.width = (100 * bulls.length / Math.max(1, bulls.length + bears.length)) + '%';
+
+  const bySec = {};
+  results.forEach(r => (bySec[r.sector] = bySec[r.sector] || []).push(r.chg));
+  $('sectors').innerHTML = Object.entries(bySec)
+    .map(([s, v]) => [s, v.reduce((a, b) => a + b, 0) / v.length]).sort((a, b) => b[1] - a[1])
+    .map(([s, v]) => `<div class="sector"><span>${s}</span><span class="${v >= 0 ? 'bull' : 'bear'}">${v.toFixed(2)}%</span></div>`).join('');
+
+  const list = (side === 'bull' ? bulls : bears).slice(0, 20);
+  $('board').innerHTML = list.map((r, i) =>
+    `<tr class="row" data-sym="${r.sym}"><td>${i + 1}</td><td><b>${r.sym}</b></td><td class="mute">${r.sector}</td>
+     <td>${r.last.toFixed(2)}</td><td class="${r.chg >= 0 ? 'bull' : 'bear'}">${r.chg.toFixed(2)}%</td><td>${r.strength.toFixed(2)}</td></tr>`).join('')
+    || '<tr><td colspan="6" class="mute">No stocks on this side yet.</td></tr>';
+}
+
+function openStock(sym) {
+  const r = results.find(x => x.sym === sym);
+  $('d-title').textContent = `${r.sym} · ${r.sector} · strength ${r.strength.toFixed(2)}`;
+  drawChart(r);
+  const f = (v) => v == null ? '—' : v.toFixed(2);
+  $('d-rows').innerHTML = [
+    ['Last', f(r.last)],
+    ['Order block', r.zone ? `${f(r.zone.lo)} – ${f(r.zone.hi)} (${r.zone.type})` : '—'],
+    ['Stop (beyond liquidity)', f(r.stop)], ['Target (next liquidity)', f(r.target)],
+    ['Risk : reward', r.rr == null ? '—' : r.rr.toFixed(2)],
+  ].map(([k, v]) => `<tr><td class="mute">${k}</td><td>${v}</td></tr>`).join('');
+  $('d-legend').innerHTML = '<span class="bull">■ bull block</span><span class="bear">■ bear block</span><span style="color:#f5b83d">— liquidity</span>';
+  dlg.showModal();
+}
+
+function drawChart(r) {
+  const cv = $('cv'), g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  const cs = r.candles;
+  const hi = Math.max(...cs.map(c => c.h)), lo = Math.min(...cs.map(c => c.l));
+  const y = (p) => H - 10 - (p - lo) / (hi - lo) * (H - 20), cw = W / cs.length;
+  g.clearRect(0, 0, W, H);
+  r.blocks.forEach(b => {                                  // zones extend to the right edge
+    g.fillStyle = b.type === 'bull' ? '#22c55e33' : '#ef444433';
+    g.fillRect(b.idx * cw, y(b.hi), W - b.idx * cw, y(b.lo) - y(b.hi));
+  });
+  g.strokeStyle = '#f5b83d'; g.setLineDash([4, 4]);
+  [...r.liq.above, ...r.liq.below].forEach(p => { g.beginPath(); g.moveTo(0, y(p)); g.lineTo(W, y(p)); g.stroke(); });
+  g.setLineDash([]);
+  cs.forEach((c, i) => {
+    g.strokeStyle = g.fillStyle = c.c >= c.o ? '#22c55e' : '#ef4444';
+    g.beginPath(); g.moveTo(i * cw + cw / 2, y(c.h)); g.lineTo(i * cw + cw / 2, y(c.l)); g.stroke();
+    g.fillRect(i * cw + 1, Math.min(y(c.o), y(c.c)), cw - 2, Math.max(1, Math.abs(y(c.o) - y(c.c))));
+  });
+}
+
+$('board').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-sym]'); if (tr) openStock(tr.dataset.sym); });
+$('t-bull').onclick = () => { side = 'bull'; $('t-bull').classList.add('on'); $('t-bear').classList.remove('on'); renderTerminal(); };
+$('t-bear').onclick = () => { side = 'bear'; $('t-bear').classList.add('on'); $('t-bull').classList.remove('on'); renderTerminal(); };
+
+/* ---- static content ---- */
+const QUOTES = [
+  ['Morning prep is shorter.', 'A. Rao · Pune'], ['The two boards cut the noise.', 'S. Iyer · Kochi'],
+  ['Sector flow tells me where to look first.', 'M. Shah · Surat'], ['Clear zone, clear stop.', 'P. Nair · Mumbai'],
+  ['I stopped chasing candles.', 'R. Singh · Delhi'], ['Clean and fast on my phone.', 'K. Mehta · Jaipur'],
+];
+const quoteCard = ([q, n]) => `<div class="card">★★★★★<p>${q}</p><span class="mute">${n}</span></div>`;
+$('marq').innerHTML = [...QUOTES, ...QUOTES].map(quoteCard).join('');
+$('tlist').innerHTML = QUOTES.map(quoteCard).join('');
+
+const UPDATES = [
+  ['New', 'v2.0', 'Redesigned terminal', 'Phone-first layout with both boards on one screen.'],
+  ['Improved', 'v1.2', 'Rank-change markers', 'See which stocks moved up the board since the last minute.'],
+  ['Fixed', 'v1.1', 'Corporate-action scores', 'Splits and bonuses no longer distort the strength score.'],
+  ['Announcement', 'v1.0', 'Launch', 'First public release.'],
+];
+let updFilter = 'All';
+function renderUpdates() {
+  $('upd-tabs').innerHTML = ['All', 'New', 'Improved', 'Fixed', 'Announcement']
+    .map(t => `<button class="${t === updFilter ? 'on' : ''}" data-t="${t}">${t}</button>`).join('');
+  $('upd-list').innerHTML = UPDATES.filter(u => updFilter === 'All' || u[0] === updFilter)
+    .map(u => `<div class="card"><span class="tag">${u[0]}</span><span class="tag">${u[1]}</span><h3>${u[2]}</h3><p class="mute">${u[3]}</p></div>`).join('')
+    || '<p class="mute">Nothing here yet.</p>';
+}
+$('upd-tabs').addEventListener('click', (e) => { if (e.target.dataset.t) { updFilter = e.target.dataset.t; renderUpdates(); } });
+
+/* ---- hash router ---- */
+function route() {
+  const h = location.hash.replace('#/', '') || 'home';
+  const target = ['terminal', 'blog', 'updates', 'testimonials', 'about', 'disclaimer'].includes(h) ? h : 'home';
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + target));
+  if (h === 'features' || h === 'pricing') setTimeout(() => $(h).scrollIntoView(), 0); else window.scrollTo(0, 0);
+}
+addEventListener('hashchange', route);
+
+renderUpdates(); loadAll(); route();
+setInterval(loadAll, 60000);     // board refresh every minute
+</script>
+</body>
+</html>
