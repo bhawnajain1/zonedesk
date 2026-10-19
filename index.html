@@ -118,7 +118,7 @@
   <details><summary>Is this investment advice?</summary><p class="mute">No. It's analytics. Rankings describe what has already moved.</p></details>
   <details><summary>How often does it refresh?</summary><p class="mute">Every minute during market hours (09:15–15:30 IST); last close otherwise.</p></details>
   <details><summary>Why is a stock missing?</summary><p class="mute">Choppy stocks score zero and are hidden from the boards.</p></details>
-  <details><summary>Which data does it use?</summary><p class="mute">Yahoo Finance via yfinance, delayed about 15 minutes. Falls back to simulated prices if the feed is down.</p></details>
+  <details><summary>Which data does it use?</summary><p class="mute">Yahoo Finance, delayed about 15 minutes. The terminal refreshes every 10 seconds while the market is open, and falls back to simulated prices if the feed is down.</p></details>
 </div></section>
 </main>
 
@@ -290,10 +290,50 @@ const STOCKS = [
 function rng(seed) { return () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296; }
 function hash(s) { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
 
+// Yahoo Finance via a small Cloudflare Worker (worker.js) that adds CORS headers.
+const API_BASE = 'https://order-block-proxy.order-block-india.workers.dev';
+const REFRESH_MS = 10000;
+const dailyRange = {};   // sym -> average daily range; fetched once per page load
+
+async function getCandles(symbol, interval, range) {
+  const r = await fetch(`${API_BASE}/api/candles?symbol=${encodeURIComponent(symbol)}&interval=${interval}&range=${range}`);
+  if (!r.ok) throw new Error(symbol + ' HTTP ' + r.status);
+  const body = await r.json();
+  if (!Array.isArray(body) || !body.length) throw new Error(symbol + ' no candles');
+  return body;
+}
+
+// IST calendar day of a candle timestamp, so "today" = newest session (weekend/holiday safe)
+const istDay = (t) => new Date(t + 5.5 * 3600e3).toISOString().slice(0, 10);
+
+async function fetchOne(sym) {
+  if (dailyRange[sym] == null) {
+    const d = (await getCandles(sym + '.NS', '1d', '1mo')).slice(-14);
+    dailyRange[sym] = d.reduce((s, c) => s + (c.h - c.l), 0) / d.length;
+  }
+  const all = await getCandles(sym + '.NS', '5m', '5d');
+  const day = istDay(all[all.length - 1].t);
+  const candles = all.filter(c => istDay(c.t) === day);
+  if (candles.length < 10) throw new Error(sym + ' only ' + candles.length + ' candles');
+  return { candles, avgDailyRange: dailyRange[sym] };
+}
+
 async function fetchLive() {
-  const res = await fetch('/api/candles?syms=' + encodeURIComponent(STOCKS.map(s => s[0]).join(',')));
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return res.json();
+  const syms = STOCKS.map(s => s[0]);
+  const settled = await Promise.allSettled(syms.map(fetchOne));
+  const data = {}, missing = [];
+  settled.forEach((r, i) => {
+    if (r.status === 'fulfilled') data[syms[i]] = r.value;
+    else { missing.push(syms[i]); console.warn('skip', syms[i], r.reason.message); }
+  });
+  return { source: 'Yahoo Finance (delayed ~15 min)', asof: new Date().toISOString(), data, missing };
+}
+
+// 09:15-15:30 IST, Mon-Fri
+function marketOpen() {
+  const ist = new Date(Date.now() + 5.5 * 3600e3);
+  const day = ist.getUTCDay(), mins = ist.getUTCHours() * 60 + ist.getUTCMinutes();
+  return day >= 1 && day <= 5 && mins >= 555 && mins <= 930;
 }
 
 // Returns {candles (5-min, today), avgDailyRange}. Simulated: seeded trend + noise, with the day seed.
@@ -317,15 +357,16 @@ const $ = (id) => document.getElementById(id);
 const dlg = $('dlg');
 let results = [], side = 'bull';
 
+let loading = false;
 async function loadAll() {
-  let live = null;
-  try {
-    live = await fetchLive();
-    console.info('live feed ok:', Object.keys(live.data).length, 'symbols, missing', live.missing);
-  } catch (e) {
-    console.warn('live feed failed, using simulation:', e);
-  }
-  $('feed-note').textContent = live ? live.source : 'simulated data';
+  if (loading) return;                                   // never overlap two refreshes
+  loading = true;
+  let live = await fetchLive();
+  if (!Object.keys(live.data).length) { console.warn('live feed returned nothing, using simulation'); live = null; }
+  else console.info('live feed ok:', Object.keys(live.data).length, 'symbols, missing', live.missing);
+  const refresh = marketOpen() ? `refreshing every ${REFRESH_MS / 1000}s` : 'market closed, last session';
+  $('feed-note').textContent = live
+    ? `${live.source} · updated ${new Date(live.asof).toLocaleTimeString()} · ${refresh}` : 'simulated data';
   results = STOCKS.flatMap(([sym, sector, price]) => {
     const d = live ? live.data[sym] : simulateCandles(sym, price);
     if (!d) return [];                                   // live feed had no data for this symbol
@@ -333,6 +374,18 @@ async function loadAll() {
     return [{ sym, sector, candles: d.candles, ...a, chg: (a.last / d.candles[0].o - 1) * 100 }];
   });
   renderTerminal();
+  if (dlg.open) openStock(openSym);                      // keep an open chart live too
+  loading = false;
+}
+
+// Poll only while the market is open, the tab is visible and the terminal is showing (saves Worker quota).
+async function tick() {
+  const open = marketOpen();
+  const onTerminal = $('p-terminal').classList.contains('on');
+  if (!document.hidden && onTerminal && (open || !results.length)) {
+    try { await loadAll(); } catch (e) { console.warn('refresh failed', e); loading = false; }
+  }
+  setTimeout(tick, open ? REFRESH_MS : 60000);
 }
 
 function renderTerminal() {
@@ -354,8 +407,11 @@ function renderTerminal() {
     || '<tr><td colspan="6" class="mute">No stocks on this side yet.</td></tr>';
 }
 
+let openSym = null;
 function openStock(sym) {
+  openSym = sym;
   const r = results.find(x => x.sym === sym);
+  if (!r) return;
   $('d-title').textContent = `${r.sym} · ${r.sector} · strength ${r.strength.toFixed(2)}`;
   drawChart(r);
   const f = (v) => v == null ? '—' : v.toFixed(2);
@@ -366,7 +422,7 @@ function openStock(sym) {
     ['Risk : reward', r.rr == null ? '—' : r.rr.toFixed(2)],
   ].map(([k, v]) => `<tr><td class="mute">${k}</td><td>${v}</td></tr>`).join('');
   $('d-legend').innerHTML = '<span class="bull">■ bull block</span><span class="bear">■ bear block</span><span style="color:#f5b83d">— liquidity</span>';
-  dlg.showModal();
+  if (!dlg.open) dlg.showModal();
 }
 
 function drawChart(r) {
@@ -424,12 +480,12 @@ function route() {
   const h = location.hash.replace('#/', '') || 'home';
   const target = ['terminal', 'blog', 'updates', 'testimonials', 'about', 'disclaimer'].includes(h) ? h : 'home';
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + target));
+  if (target === 'terminal') loadAll().catch(e => { console.warn('load failed', e); loading = false; });
   if (h === 'features' || h === 'pricing') setTimeout(() => $(h).scrollIntoView(), 0); else window.scrollTo(0, 0);
 }
 addEventListener('hashchange', route);
 
-renderUpdates(); loadAll(); route();
-setInterval(loadAll, 60000);     // board refresh every minute
+renderUpdates(); route(); tick();
 </script>
 </body>
 </html>

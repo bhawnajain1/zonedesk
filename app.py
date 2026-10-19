@@ -2,10 +2,13 @@
 
 Run locally:  pip install -r requirements.txt && python app.py
 """
+import json
 import logging
 import os
 import re
+import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yfinance as yf
@@ -88,8 +91,32 @@ def fetch_from_yfinance(syms):
         except Exception as e:
             log.warning("skip %s: %s", sym, e)
             missing.append(sym)
-    return {"source": "yfinance (delayed ~15 min)", "data": data, "missing": missing}
+    asof = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return {"source": "yfinance (delayed ~15 min)", "asof": asof, "data": data, "missing": missing}
+
+
+# Same list as STOCKS in index.html. Used by `--dump` (GitHub Pages build, no server).
+SYMBOLS = [
+    "SBIN", "HDFCBANK", "ICICIBANK", "AXISBANK", "TCS", "INFY", "WIPRO", "HCLTECH",
+    "TATAMOTORS", "MARUTI", "M&M", "BAJAJ-AUTO", "SUNPHARMA", "CIPLA", "DRREDDY", "LUPIN",
+    "RELIANCE", "ONGC", "NTPC", "POWERGRID", "TATASTEEL", "HINDALCO", "JSWSTEEL", "VEDL",
+    "ITC", "HINDUNILVR", "NESTLEIND", "BRITANNIA", "LT", "ADANIPORTS", "ULTRACEMCO", "GRASIM",
+]
+
+
+def dump(path):
+    log.info("dump: fetching %d symbols -> %s", len(SYMBOLS), path)
+    result = fetch_from_yfinance(SYMBOLS)
+    if len(result["data"]) < len(SYMBOLS) // 2:
+        # Fail the build so a bad fetch never replaces the last good published site.
+        log.error("dump: only %d symbols returned, refusing to write", len(result["data"]))
+        sys.exit(1)
+    Path(path).write_text(json.dumps(result))
+    log.info("dump: wrote %d symbols, %d missing", len(result["data"]), len(result["missing"]))
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+    if len(sys.argv) == 3 and sys.argv[1] == "--dump":
+        dump(sys.argv[2])
+    else:
+        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
